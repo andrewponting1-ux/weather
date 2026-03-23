@@ -23,7 +23,7 @@ with streamlit_analytics.track():
         # Pulling your NEW key from Secrets
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
-        # EXACT URL FORMAT - copied from OpenWeather docs
+        # EXACT URL FORMAT
         url = f"https://api.openweathermap.org{coords['lat']}&lon={coords['lon']}&appid={API_KEY}&units=metric"
         
         response = requests.get(url, timeout=15)
@@ -31,7 +31,7 @@ with streamlit_analytics.track():
         if response.status_code == 200:
             data = response.json()
             temp = data["main"]["temp"]
-            # Weather description is a list, so we grab the first item [0]
+            # Weather description is a list, so we grab the first item
             desc = data["weather"][0]["description"]
             
             st.header(f"{round(temp, 1)}°C in {selected_city}")
@@ -42,9 +42,9 @@ with streamlit_analytics.track():
             else:
                 st.success("✅ Weather looks good!")
         else:
-            # We show a simple error without printing the URL or the Key
-            st.error("⚠️ Server error. Please check your API key activation.")
+            # Simple error if the API key isn't active yet
+            st.error("⚠️ Server error. Your new key might need an hour to activate.")
 
     except Exception:
-        # We don't print the error 'e' here to keep your key hidden
+        # This keeps your key hidden if the connection fails
         st.error("⚠️ Connection failed. Please try refreshing in a moment.")

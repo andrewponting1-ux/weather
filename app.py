@@ -5,19 +5,18 @@ import streamlit_analytics2 as streamlit_analytics
 # 1. PAGE CONFIG
 st.set_page_config(page_title="UK Weather Guide", page_icon="🌤️", layout="centered")
 
-# 2. DEFINE LOCATIONS (City: [Lat, Lon])
+# 2. LOCATIONS DICTIONARY
 LOCATIONS = {
-    "Swindon": [51.5558, -1.7797],
-    "London": [51.5074, -0.1278],
-    "Bristol": [51.4545, -2.5879],
-    "Oxford": [51.7520, -1.2577],
-    "Manchester": [53.4808, -2.2426]
+    "Swindon": {"lat": 51.5558, "lon": -1.7797},
+    "London": {"lat": 51.5074, "lon": -0.1278},
+    "Bristol": {"lat": 51.4545, "lon": -2.5879},
+    "Oxford": {"lat": 51.7520, "lon": -1.2577}
 }
 
-# 3. CACHED API FUNCTION
+# 3. WEATHER FETCH FUNCTION
 @st.cache_data(ttl=600)
 def get_weather(lat, lon, api_key):
-    # Note: Ensure your subscription supports the 3.0 One Call API
+    # One Call 3.0 URL
     url = f"https://api.openweathermap.org{lat}&lon={lon}&exclude=minutely,hourly,daily,alerts&appid={api_key}&units=metric"
     try:
         response = requests.get(url, timeout=10)
@@ -25,43 +24,49 @@ def get_weather(lat, lon, api_key):
     except Exception:
         return None
 
-# 4. TRACKING & UI
+# 4. APP UI
 with streamlit_analytics.track():
     st.title("🌤️ UK Weather Guide")
 
-    # DROPDOWN SELECTOR
+    # Dropdown to pick location
     selected_city = st.selectbox("Select a Location:", list(LOCATIONS.keys()))
-    coords = LOCATIONS[selected_city]
+    city_data = LOCATIONS[selected_city]
 
     try:
-        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-        response = get_weather(coords[0], coords[1], API_KEY)
-        
-        if response and response.status_code == 200:
-            data = response.json()
-            current = data["current"]
-            temp = current["temp"]
-            desc = current["weather"][0]["description"]
-            icon = current["weather"][0]["icon"]
-            
-            # Display results
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                st.image(f"http://openweathermap.org{icon}@4x.png")
-            with col2:
-                st.header(f"{round(temp, 1)}°C in {selected_city}")
-                st.subheader(desc.capitalize())
-            
-            st.success(f"✅ Live data for {selected_city}")
-            
-        elif response and response.status_code == 401:
-            st.warning("⏳ API Key not active or invalid for One Call 3.0.")
+        # Check for Secret
+        if "OPENWEATHER_API_KEY" not in st.secrets:
+            st.error("🔑 Missing Secret: Add 'OPENWEATHER_API_KEY' to your Streamlit Cloud Secrets.")
         else:
-            st.error(f"❌ Connection Failed (Error {response.status_code if response else 'Unknown'})")
+            API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+            response = get_weather(city_data["lat"], city_data["lon"], API_KEY)
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                current = data["current"]
+                
+                # Extracting specific fields (Note the [0] for weather list)
+                temp = current["temp"]
+                desc = current["weather"][0]["description"]
+                icon = current["weather"][0]["icon"]
 
-    except KeyError:
-        st.error("🔑 Missing 'OPENWEATHER_API_KEY' in Streamlit Secrets.")
+                # Display columns
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    st.image(f"http://openweathermap.org{icon}@4x.png")
+                with col2:
+                    st.header(f"{round(temp, 1)}°C")
+                    st.subheader(desc.capitalize())
+                    st.write(f"📍 Showing weather for **{selected_city}**")
+                
+            elif response and response.status_code == 401:
+                st.warning("⚠️ **Subscription Error (401):** Ensure you have active 'One Call 3.0' access in your OpenWeather dashboard.")
+            else:
+                error_code = response.status_code if response else "Connection Timeout"
+                st.error(f"❌ Connection Failed (Error {error_code}). Check your internet or API subscription.")
 
-    if st.button("🔄 Refresh"):
+    except Exception as e:
+        st.error(f"📡 An unexpected error occurred: {e}")
+
+    if st.button("🔄 Refresh Data"):
         st.cache_data.clear()
         st.rerun()

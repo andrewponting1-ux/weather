@@ -3,7 +3,8 @@ import requests
 import pandas as pd
 from streamlit_folium import st_folium
 import folium
-import streamlit_analytics
+import streamlit_analytics2 as streamlit_analytics
+
 
 # 1. Start Analytics (Add ?analytics=on to your URL to see stats)
 with streamlit_analytics.track():

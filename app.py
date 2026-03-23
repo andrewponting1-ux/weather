@@ -1,18 +1,13 @@
 import streamlit as st
-import openmeteo_sdk
-import pandas as pd
-from retry_requests import retry
-import requests_cache
+import requests
 import streamlit_analytics2 as streamlit_analytics
 
-# 1. SETUP THE SECURE CLIENT
-cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
-retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
-openmeteo = openmeteo_sdk.Client(session=retry_session)
-
+# 1. TRACKING
 with streamlit_analytics.track():
-    st.title("🌤️ My Local Weather Guide")
+    st.title("🌤️ My Local Weather Guide") 
+    st.markdown("Simple Weather Advice")
 
+    # 2. LOCATIONS
     CITIES = {
         "Bristol": {"lat": 51.4545, "lon": -2.5879},
         "London": {"lat": 51.5074, "lon": -0.1278},
@@ -22,30 +17,34 @@ with streamlit_analytics.track():
     selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
     lat, lon = CITIES[selected_city]["lat"], CITIES[selected_city]["lon"]
 
-    # 2. FETCH DATA USING THE OFFICIAL SDK
+    # 3. THE "FAKE BROWSER" HEADER
+    # This makes the request look like it's from a real person, not a bot
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    # 4. FETCH DATA
     try:
-        params = {
-            "latitude": lat,
-            "longitude": lon,
-            "current": "temperature_2m,wind_speed_10m"
-        }
-        # This is the "Safe" way to call Open-Meteo now
-        responses = openmeteo.weather_api("https://api.open-meteo.com", params=params)
-        response = responses[0]
-
-        # Process results
-        current = response.Current()
-        temp = current.Variables(0).Value()
-        wind = current.Variables(1).Value()
-
-        st.header(f"Current Temp: {round(temp, 1)}°C")
-        st.write(f"Wind Speed: {round(wind, 1)} km/h")
+        # We use the simplest possible URL to avoid errors
+        url = f"https://api.open-meteo.com{lat}&longitude={lon}&current_weather=true"
         
-        if temp < 10:
-            st.info(f"🧥 Chilly in {selected_city}!")
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            temp = data["current_weather"]["temperature"]
+            wind = data["current_weather"]["windspeed"]
+            
+            st.header(f"Current Temp: {temp}°C")
+            st.write(f"Wind Speed: {wind} km/h")
+            
+            if temp < 10:
+                st.info(f"🧥 It's chilly in {selected_city} today!")
+            else:
+                st.success(f"☀️ Looking good in {selected_city}!")
         else:
-            st.success("😎 Nice weather!")
+            st.error(f"Error: The server said '{response.status_code}'. This usually means Streamlit is being blocked.")
 
     except Exception as e:
-        st.error("⚠️ The weather service is still blocking the cloud server. Try again in a minute.")
-        st.write(f"Debug Info: {e}")
+        st.error("⚠️ Connection failed. Please try refreshing the page in a few seconds.")
+

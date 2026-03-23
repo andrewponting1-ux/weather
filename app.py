@@ -5,7 +5,7 @@ import streamlit_analytics2 as streamlit_analytics
 # 1. TRACKING
 with streamlit_analytics.track():
     st.title("🌤️ My Local Weather Guide") 
-    st.markdown("Simple Weather Advice")
+    st.markdown("Powered by BrightSky Weather Service")
 
     # 2. LOCATIONS
     CITIES = {
@@ -17,34 +17,34 @@ with streamlit_analytics.track():
     selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
     lat, lon = CITIES[selected_city]["lat"], CITIES[selected_city]["lon"]
 
-    # 3. THE "FAKE BROWSER" HEADER
-    # This makes the request look like it's from a real person, not a bot
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-
-    # 4. FETCH DATA
+    # 3. FETCH DATA FROM BRIGHTSKY
     try:
-        # We use the simplest possible URL to avoid errors
-        url = f"https://api.open-meteo.com{lat}&longitude={lon}&current_weather=true"
+        # We ask for the most recent weather record
+        url = f"https://api.brightsky.dev{lat}&lon={lon}"
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, timeout=10)
         
         if response.status_code == 200:
-            data = response.json()
-            temp = data["current_weather"]["temperature"]
-            wind = data["current_weather"]["windspeed"]
+            # BrightSky puts the data inside a 'weather' object
+            data = response.json()["weather"]
+            
+            temp = data["temperature"]
+            wind = data["wind_speed"]
+            condition = data["condition"]
             
             st.header(f"Current Temp: {temp}°C")
-            st.write(f"Wind Speed: {wind} km/h")
+            st.write(f"💨 Wind: {wind} km/h")
+            st.write(f"☁️ Condition: {condition.capitalize()}")
             
+            # Simple Advice
             if temp < 10:
-                st.info(f"🧥 It's chilly in {selected_city} today!")
+                st.info(f"🧥 It's chilly in {selected_city}. Wrap up warm!")
+            elif condition == 'rain':
+                st.warning(f"☔ Rain detected in {selected_city}. Take an umbrella!")
             else:
-                st.success(f"☀️ Looking good in {selected_city}!")
+                st.success(f"✅ Looking good in {selected_city}!")
         else:
-            st.error(f"Error: The server said '{response.status_code}'. This usually means Streamlit is being blocked.")
+            st.error(f"Weather service returned error code: {response.status_code}")
 
     except Exception as e:
-        st.error("⚠️ Connection failed. Please try refreshing the page in a few seconds.")
-
+        st.error("⚠️ Connection failed. Please try refreshing the page.")

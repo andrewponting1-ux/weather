@@ -17,7 +17,9 @@ with streamlit_analytics.track():
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
         # FIXED: Added 'f' before the string to inject variables and units=metric for Celsius
-        url = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude={PART}&appid={API_KEY}&units=metric"
+        #url = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude={PART}&appid={API_KEY}&units=metric"
+        url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API key}"
+                       
         
         headers = {'User-Agent': 'WeatherApp/1.0'}
         response = requests.get(url, headers=headers, timeout=10)

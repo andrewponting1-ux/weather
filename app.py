@@ -17,7 +17,7 @@ with streamlit_analytics.track():
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
         # FIXED URL: Added the missing /data/3.0/onecall?lat= part
-        url = "https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API_KEY}"
+        url = "https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude={part}&appid={API_KEY}"
         
         # Headers to prevent the "Network Block"
         headers = {

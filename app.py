@@ -1,49 +1,36 @@
 import streamlit as st
-import requests
-import streamlit_analytics2 as streamlit_analytics
+import pandas as pd
+from datetime import datetime
 
-with streamlit_analytics.track():
-    st.set_page_config(page_title="My Local Weather", layout="centered")
-    st.title("🌤️ My Local Weather Guide")
+# ... (keep your existing imports and API call code)
 
-    CITIES = {
-        "Bristol": {"lat": 51.4545, "lon": -2.5879},
-        "London": {"lat": 51.5074, "lon": -0.1278},
-        "Manchester": {"lat": 53.4808, "lon": -2.2426}
-    }
+if response.status_code == 200:
+    data = response.json()
+    
+    # 1. Prepare data for the chart
+    # 'hourly' contains 48 objects; we extract 'dt' (time) and 'pop' (probability)
+    hourly_data = data["hourly"]
+    
+    chart_data = []
+    for hour in hourly_data:
+        chart_data.append({
+            "Time": datetime.fromtimestamp(hour["dt"]).strftime("%H:%M (%a)"),
+            "Rain Probability (%)": hour.get("pop", 0) * 100
+        })
+    
+    # Convert to a DataFrame for Streamlit
+    df = pd.DataFrame(chart_data)
 
-    selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
-    lat, lon = CITIES[selected_city]["lat"], CITIES[selected_city]["lon"]
+    # 2. Display the Chart
+    st.divider()
+    st.subheader("🌧️ 48-Hour Rain Forecast")
+    st.write("Chance of rain for your commute over the next 2 days:")
+    
+    # Creating the bar chart
+    st.bar_chart(df.set_index("Time"))
 
-    try:
-        # Using the One Call 3.0 format you found
-        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-        
-        # Adding &units=metric so it shows Celsius
-        url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
-        
-        response = requests.get(url, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # One Call puts current weather inside 'current'
-            current = data["current"]
-            temp = current["temp"]
-            desc = current["weather"][0]["description"]
-            
-            st.header(f"{round(temp, 1)}°C in {selected_city}")
-            st.write(f"☁️ Condition: {desc.capitalize()}")
-            
-            if temp < 10:
-                st.info("🧥 Chilly out there! Dress warmly.")
-            else:
-                st.success("✅ Weather looks good!")
-
-        elif response.status_code == 401:
-            st.error("Invalid API Key. Make sure you have 'One Call 3.0' activated in your account.")
-        else:
-            st.error(f"Error {response.status_code}. Check if you added a payment method to OpenWeather (they need it for 3.0, even the free part).")
-
-    except Exception as e:
-        st.error(f"⚠️ Connection error. The cloud is struggling to reach the server.")
+    # 3. Peak Rain Warning
+    max_pop = df["Rain Probability (%)"].max()
+    if max_pop > 50:
+        peak_time = df.loc[df["Rain Probability (%)"].idxmax(), "Time"]
+        st.warning(f"⚠️ High risk of rain ({round(max_pop)}%) peak expected around {peak_time}.")

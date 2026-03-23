@@ -1,70 +1,51 @@
 import streamlit as st
 import requests
-import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import streamlit_analytics2 as streamlit_analytics
 
-# 1. TRACKING: Using the patched analytics library
+# 1. TRACKING
 with streamlit_analytics.track():
     
-    st.set_page_config(page_title="🚲 SHIFT: Commute Optimizer", layout="centered")
+    # You can change this title to whatever you want!
+    st.set_page_config(page_title="My Weather App", layout="centered")
+    st.title("🌤️ My Local Weather Guide") 
+    st.markdown("Custom Weather • Air Quality • Advice")
 
-    st.title("🚲 SHIFT: Commute Optimizer")
-    st.markdown("Weather • Air Quality • Pollen • Travel Advice")
-
-    # 2. HARDCODED LOCATIONS: Add as many as you like here
+    # 2. YOUR SET LOCATIONS
     CITIES = {
-        "London": {"lat": 51.5074, "lon": -0.1278},
-        "Manchester": {"lat": 53.4808, "lon": -2.2426},
-        "Birmingham": {"lat": 52.4862, "lon": -1.8904},
         "Bristol": {"lat": 51.4545, "lon": -2.5879},
-        "Glasgow": {"lat": 55.8642, "lon": -4.2518}
+        "London": {"lat": 51.5074, "lon": -0.1278},
+        "Manchester": {"lat": 53.4808, "lon": -2.2426}
     }
 
-    # 3. USER SELECTION
-    selected_city = st.selectbox("📍 Select your location:", list(CITIES.keys()))
-    coords = CITIES[selected_city]
-    lat, lon = coords["lat"], coords["lon"]
+    selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
+    lat, lon = CITIES[selected_city]["lat"], CITIES[selected_city]["lon"]
 
-    # 4. WEATHER DATA: Calling Open-Meteo
-    # We fetch current weather, air quality, and pollen in one go
-    WEATHER_URL = "https://api.open-meteo.com"
-    params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
-        "hourly": "pm10,pm2_5,pollen_graph_birch,pollen_graph_grass",
-        "timezone": "auto"
-    }
-
+    # 3. GET WEATHER & AIR QUALITY
     try:
-        response = requests.get(WEATHER_URL, params=params)
-        data = response.json()
-
-        # Display Current Weather
-        current = data["current"]
-        temp = current["temperature_2m"]
-        wind = current["wind_speed_10m"]
+        # Fetch basic weather
+        w_res = requests.get(f"https://api.open-meteo.com{lat}&longitude={lon}&current_weather=true")
+        # Fetch air quality (Separate link)
+        a_res = requests.get(f"https://air-quality-api.open-meteo.com{lat}&longitude={lon}&current=european_aqi,pm10,pm2_5&hourly=alder_pollen,birch_pollen,grass_pollen")
         
+        weather_data = w_res.json()
+        air_data = a_res.json()
+
+        # Display Results
+        temp = weather_data["current_weather"]["temperature"]
+        aqi = air_data["current"]["european_aqi"]
+
         col1, col2 = st.columns(2)
         col1.metric("Temperature", f"{temp}°C")
-        col2.metric("Wind Speed", f"{wind} km/h")
+        col2.metric("Air Quality (AQI)", f"{aqi}")
 
-        # 5. MAP VIEW: Show the selected location
+        # 4. MAP
         st.subheader(f"Map: {selected_city}")
         m = folium.Map(location=[lat, lon], zoom_start=12)
-        folium.Marker([lat, lon], popup=selected_city).add_to(m)
+        folium.Marker([lat, lon]).add_to(m)
         st_folium(m, height=300, width=700)
 
-        # 6. TRAVEL ADVICE: Simple logic based on weather
-        st.subheader("🚲 Commute Advice")
-        if temp < 5:
-            st.info("❄️ It's cold! Wear thermal layers for your ride.")
-        elif wind > 25:
-            st.warning("💨 High winds! Be careful on open roads.")
-        else:
-            st.success("✅ Weather looks good for a cycle today!")
-
     except Exception as e:
-        st.error("Wait! We couldn't fetch the weather data right now. Please try again in a moment.")
+        st.error("Connection error. Please check your internet or try again later.")
+

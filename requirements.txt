@@ -1,9 +1,4 @@
 streamlit
 requests
 pandas
-streamlit-folium
-folium
 streamlit-analytics2
-openmeteo-sdk
-retry-requests
-requests-cache

@@ -1,25 +1,50 @@
 import streamlit as st
 import requests
+import streamlit_analytics2 as streamlit_analytics
 
-st.title("🌤️ Weather Test")
+# 1. TRACKING & PAGE CONFIG
+with streamlit_analytics.track():
+    st.set_page_config(page_title="My Local Weather", layout="centered")
+    st.title("🌤️ My Local Weather Guide")
 
-# This pulls from your Streamlit Cloud "Secrets" box
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+    # 2. LOCATIONS
+    CITIES = {
+        "Bristol": {"lat": 51.4545, "lon": -2.5879},
+        "London": {"lat": 51.5074, "lon": -0.1278},
+        "Manchester": {"lat": 53.4808, "lon": -2.2426},
+        "Swindon": {"lat": 51.5558, "lon": -1.7797}
+    }
 
-# Using the standard 2.5 version (no credit card needed)
-# Notice the '?' and the '&' - these must be exactly right!
-url = f"https://api.openweathermap.org{API_KEY}&units=metric"
+    selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
+    coords = CITIES[selected_city]
 
-try:
-    response = requests.get(url, timeout=10)
-    
-    if response.status_code == 200:
-        data = response.json()
-        temp = data["main"]["temp"]
-        st.success(f"✅ Connection Successful! Bristol is {temp}°C")
-    else:
-        # This will tell us if the key is invalid or the plan is wrong
-        st.error(f"❌ Server error {response.status_code}: {response.text}")
+    # 3. API CALL (Using the Free 2.5 Version)
+    try:
+        # This pulls safely from your Secrets box
+        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+        
+        # FIXED URL: Added the missing /data/2.5/weather? part
+        url = f"https://api.openweathermap.org{coords['lat']}&lon={coords['lon']}&appid={API_KEY}&units=metric"
+        
+        response = requests.get(url, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            temp = data["main"]["temp"]
+            desc = data["weather"][0]["description"] # Added [0] to fix the list error
+            
+            st.header(f"{round(temp, 1)}°C in {selected_city}")
+            st.write(f"☁️ Condition: {desc.capitalize()}")
+            
+            if temp < 10:
+                st.info("🧥 Chilly out there! Dress warmly.")
+            else:
+                st.success("✅ Weather looks good!")
+        else:
+            st.error(f"Server error {response.status_code}. Check your API key in Secrets.")
 
-except Exception as e:
-    st.error(f"⚠️ Connection failed: {e}")
+    except Exception as e:
+        st.error(f"⚠️ Connection failed. Please check your URL or Secrets.")
+        # This will show you exactly what is wrong if it fails again
+        with st.expander("Show error details"):
+            st.write(e)

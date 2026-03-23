@@ -18,7 +18,7 @@ with streamlit_analytics.track():
         
         # FIXED: Added 'f' before the string to inject variables and units=metric for Celsius
         #url = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude={PART}&appid={API_KEY}&units=metric"
-        url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_key}&units=metric"
+        url = f"https://api.openweathermap.org/data/3.0/forecast?lat={lat}&lon={lon}&appid={API_key}&units=metric"
                        
         
         headers = {'User-Agent': 'WeatherApp/1.0'}

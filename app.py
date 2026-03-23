@@ -1,48 +1,26 @@
 import streamlit as st
 import requests
-import streamlit_analytics2 as streamlit_analytics
 
-with streamlit_analytics.track():
-    st.set_page_config(page_title="Swindon Weather", layout="centered")
-    st.title("🌤️ Swindon Weather Guide")
+st.title("🛡️ API Safety Tester")
 
-    # 1. HARDCODED LOCATION: Swindon
-    LAT = 51.5558
-    LON = -1.7797
+try:
+    # Pull key from your Secret vault
+    API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+    
+    # We use a standard 'ping' to the 2.5 API as a test 
+    # (2.5 is faster to activate than 3.0)
+    test_url = f"https://api.openweathermap.org{API_KEY}"
+    
+    response = requests.get(test_url, timeout=10)
+    
+    if response.status_code == 200:
+        st.success("✅ SUCCESS: Your API key is live and working!")
+        st.balloons()
+    elif response.status_code == 401:
+        st.warning("⏳ NOT READY: Your key exists, but OpenWeather hasn't activated it yet. Wait 1-2 hours.")
+    else:
+        st.error(f"❌ SERVER ERROR {response.status_code}: The server is reachable but rejected the request.")
 
-    # 2. SECURE API CALL
-    try:
-        # Pull key from your Streamlit Cloud Secrets
-        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-        
-        # Exact URL format you requested
-        url = f"https://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
-        
-        response = requests.get(url, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            current = data["current"]
-            temp = current["temp"]
-            # Weather is a list, so we grab the first item [0]
-            desc = current["weather"][0]["description"]
-            
-            st.header(f"{round(temp, 1)}°C in Swindon")
-            st.write(f"☁️ Condition: {desc.capitalize()}")
-            
-            if temp < 10:
-                st.info("🧥 It's chilly in Swindon. Wear a coat!")
-            else:
-                st.success("✅ Weather looks good!")
-        
-        elif response.status_code == 401:
-            st.warning("⏳ API Key Error: Your key is either mistyped in Secrets or not active yet.")
-        else:
-            st.error(f"⚠️ Server Error: {response.status_code}")
-
-    except Exception:
-        # SECURE: This block is empty of variables to ensure your API Key is NEVER shown in logs
-        st.error("📡 Connection Error: The app cannot reach the weather server right now.")
-
-    if st.button("🔄 Refresh"):
-        st.rerun()
+except Exception:
+    # SECURE: This catch-all hides all technical details including your API key
+    st.error("📡 NETWORK BLOCKED: Streamlit Cloud cannot reach the weather server at all.")

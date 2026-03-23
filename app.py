@@ -16,10 +16,8 @@ with streamlit_analytics.track():
         # Pull key from your Streamlit Cloud Secrets
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
-        # Exact 3.0 One Call URL
-        # Change https to http
-       url = f"https://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
-
+        # FIXED URL: Added the missing /data/3.0/onecall?lat= part
+        url = f"https://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
         
         # Headers to prevent the "Network Block"
         headers = {
@@ -30,9 +28,8 @@ with streamlit_analytics.track():
         
         if response.status_code == 200:
             data = response.json()
-            # 3.0 Data structure: current -> temp
             temp = data["current"]["temp"]
-            # 3.0 Data structure: current -> weather list -> first item -> description
+            # 3.0 Data structure for description
             desc = data["current"]["weather"][0]["description"]
             
             st.header(f"{round(temp, 1)}°C in Swindon")

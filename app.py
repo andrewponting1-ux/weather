@@ -43,8 +43,9 @@ with streamlit_analytics.track():
         else:
             st.error(f"Server error {response.status_code}. Check your API key in Secrets.")
 
-    except Exception as e:
-        st.error(f"⚠️ Connection failed. Please check your URL or Secrets.")
-        # This will show you exactly what is wrong if it fails again
-        with st.expander("Show error details"):
-            st.write(e)
+except Exception:
+    st.error("⚠️ Connection failed. Please try again.")
+    # DO NOT put st.write(e) here if you want to keep the key hidden during a crash
+
+    
+

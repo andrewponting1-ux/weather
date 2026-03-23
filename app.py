@@ -18,12 +18,12 @@ with streamlit_analytics.track():
     selected_city = st.selectbox("📍 Choose a city:", list(CITIES.keys()))
     coords = CITIES[selected_city]
 
-    # 3. API CALL (Using the Free 2.5 Version)
+    # 3. API CALL
     try:
-        # This pulls safely from your Secrets box
+        # Pulling your NEW key from Secrets
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
-        # FIXED URL: Added the missing /data/2.5/weather? part
+        # EXACT URL FORMAT - copied from OpenWeather docs
         url = f"https://api.openweathermap.org{coords['lat']}&lon={coords['lon']}&appid={API_KEY}&units=metric"
         
         response = requests.get(url, timeout=15)
@@ -31,7 +31,8 @@ with streamlit_analytics.track():
         if response.status_code == 200:
             data = response.json()
             temp = data["main"]["temp"]
-            desc = data["weather"][0]["description"] # Added [0] to fix the list error
+            # Weather description is a list, so we grab the first item [0]
+            desc = data["weather"][0]["description"]
             
             st.header(f"{round(temp, 1)}°C in {selected_city}")
             st.write(f"☁️ Condition: {desc.capitalize()}")
@@ -41,11 +42,9 @@ with streamlit_analytics.track():
             else:
                 st.success("✅ Weather looks good!")
         else:
-            st.error(f"Server error {response.status_code}. Check your API key in Secrets.")
+            # We show a simple error without printing the URL or the Key
+            st.error("⚠️ Server error. Please check your API key activation.")
 
-except Exception:
-    st.error("⚠️ Connection failed. Please try again.")
-    # DO NOT put st.write(e) here if you want to keep the key hidden during a crash
-
-    
-
+    except Exception:
+        # We don't print the error 'e' here to keep your key hidden
+        st.error("⚠️ Connection failed. Please try refreshing in a moment.")

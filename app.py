@@ -20,8 +20,8 @@ with streamlit_analytics.track():
 
     try:
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-        url = f"https://api.openweathermap.org{coords['lat']}&lon={coords['lon']}&appid={API_KEY}&units=metric"
-        
+        url = f"https://api.openweathermap.org?lat={coords['lat']}&lon={coords['lon']}&appid={API_KEY}&units=metric"
+                
         # 1. MAKE THE API CALL (This creates 'response')
         response = requests.get(url, timeout=15)
         

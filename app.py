@@ -3,55 +3,46 @@ import requests
 import streamlit_analytics2 as streamlit_analytics
 
 with streamlit_analytics.track():
-    st.set_page_config(page_title="Commute Optimizer", layout="centered")
-    st.title("🌤️ My Local Weather Guide")
+    st.set_page_config(page_title="Swindon Weather", layout="centered")
+    st.title("🌤️ Swindon Weather Guide")
 
-    CITIES = {
-        "Bristol": {"lat": 51.4545, "lon": -2.5879},
-        "London": {"lat": 51.5074, "lon": -0.1278},
-        "Manchester": {"lat": 53.4808, "lon": -2.2426},
-        "Swindon": {"lat": 51.5558, "lon": -1.7797}
-    }
+    # 1. HARDCODED LOCATION: Swindon
+    LAT = 51.5558
+    LON = -1.7797
 
-    selected_city = st.selectbox("📍 Select Location:", list(CITIES.keys()))
-    coords = CITIES[selected_city]
-
+    # 2. SECURE API CALL
     try:
+        # Pull key from your Streamlit Cloud Secrets
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         
-        # 1. BASE URL ONLY
-        url = "https://api.openweathermap.org"
+        # Exact URL format you requested
+        url = f"https://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
         
-        # 2. SEPARATE PARAMETERS (More reliable for the cloud)
-        params = {
-            "lat": coords["lat"],
-            "lon": coords["lon"],
-            "appid": API_KEY,
-            "units": "metric",
-            "exclude": "minutely,hourly" # Simplifies the data coming back
-        }
-        
-        # 3. REQUEST WITH PARAMS
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(url, timeout=15)
         
         if response.status_code == 200:
             data = response.json()
             current = data["current"]
             temp = current["temp"]
-            # Note: weather is a list, so we grab the first item [0]
+            # Weather is a list, so we grab the first item [0]
             desc = current["weather"][0]["description"]
             
-            st.header(f"{round(temp, 1)}°C in {selected_city}")
+            st.header(f"{round(temp, 1)}°C in Swindon")
             st.write(f"☁️ Condition: {desc.capitalize()}")
+            
+            if temp < 10:
+                st.info("🧥 It's chilly in Swindon. Wear a coat!")
+            else:
+                st.success("✅ Weather looks good!")
         
         elif response.status_code == 401:
-            st.warning("⏳ Key not active yet. OpenWeather is still syncing your subscription.")
+            st.warning("⏳ API Key Error: Your key is either mistyped in Secrets or not active yet.")
         else:
-            st.error(f"⚠️ Server returned error: {response.status_code}")
+            st.error(f"⚠️ Server Error: {response.status_code}")
 
     except Exception:
-        # This keeps your key safe from logs
-        st.error("📡 Network Error: Streamlit is struggling to reach the server. Try a quick 'Reboot' from the dashboard.")
+        # SECURE: This block is empty of variables to ensure your API Key is NEVER shown in logs
+        st.error("📡 Connection Error: The app cannot reach the weather server right now.")
 
     if st.button("🔄 Refresh"):
         st.rerun()

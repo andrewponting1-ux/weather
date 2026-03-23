@@ -3,4 +3,4 @@ requests
 pandas
 streamlit-folium
 folium
-streamlit-analytics
+streamlit-analytics2

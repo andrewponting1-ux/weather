@@ -18,7 +18,7 @@ with streamlit_analytics.track():
         
         # Exact 3.0 One Call URL
         # Change https to http
-        url = f"http://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
+       url = f"https://api.openweathermap.org{LAT}&lon={LON}&appid={API_KEY}&units=metric"
 
         
         # Headers to prevent the "Network Block"
